@@ -95,32 +95,36 @@ impl Default for PaintCanvas {
 }
 
 fn main() {
-    // initialize sdl2
+    // init sdl2
     let sdl_context = sdl2::init().unwrap();
-    #[allow(unused_mut)]
-    let mut video_subsystem = sdl_context.video().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
 
+    // init window
     let window = video_subsystem
         .window("Paint", 400, 400)
         .position_centered()
         .build()
         .unwrap();
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
-
     // init canvas
     let mut canvas = window.into_canvas().build().unwrap();
 
+    // vars for saving previous mouse locations
     let (mut last_x, mut last_y): (i32, i32) = (0, 0);
+
+    // init paintcanvas
     let mut p: PaintCanvas = PaintCanvas::default();
+
     'running: loop {
-        for event in event_pump.poll_iter() {
+        // poll events
+        for event in sdl_context.event_pump().unwrap().poll_iter() {
             match event {
                 Event::Quit { .. } => break 'running,
                 Event::KeyDown {
                     keycode: Some(c), ..
                 } => {
                     match c {
+                        // clear canvas when c is pressed
                         Keycode::C => p.clear_strokes(),
                         _ => {}
                     };
@@ -129,23 +133,31 @@ fn main() {
             }
         }
 
-        let mouse_state = event_pump.mouse_state();
+        // grab mouse state
+        let mouse_state = sdl_context.event_pump().unwrap().mouse_state();
+        // check if mouse is pressed
         if mouse_state.is_mouse_button_pressed(MouseButton::Left) {
+            // check if mouse is in top region
             if mouse_state.y() <= 50 {
+                // set brush color based on mouse x value
                 p.brush
                     .set_brush((mouse_state.x() as f32 / 50.0).floor() as usize);
             }
+            // add new brushstroke between last position and current position
             p.add(
                 Point::new(last_x, last_y),
                 Point::new(mouse_state.x(), mouse_state.y()),
             );
         }
 
+        // update lastposition
         last_x = mouse_state.x();
         last_y = mouse_state.y();
 
+        // display paintcanvas
         p.clear(&mut canvas);
         p.draw(&mut canvas);
+        // present canvas
         canvas.present();
     }
 }
